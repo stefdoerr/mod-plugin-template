@@ -37,7 +37,7 @@ Override defaults on the command line:
 
 | Variable        | Default          | Purpose |
 |-----------------|------------------|---------|
-| `CROSS_IMAGE`   | `<plugin>-cross` | Docker image tag. |
+| `CROSS_IMAGE`   | `moddwarf-cross` | Docker image tag. Plugin-independent: shared by every plugin built from the template, so the ~6 GB toolchain is built once per machine, not once per plugin. |
 | `DWARF_HOST`    | `192.168.51.1`   | Hostname/IP of the connected Dwarf. |
 | `DWARF_USER`    | `root`           | SSH user on the Dwarf. |
 | `DWARF_LV2DIR`  | `/root/.lv2`     | Plugin install dir on the Dwarf. |
@@ -63,12 +63,12 @@ upstream.
 ## Troubleshooting
 
 - **`docker build` fails with apt errors**: try `--network=host`:
-  `docker build --network=host -t <plugin>-cross mod-build/`
+  `docker build --network=host -t moddwarf-cross mod-build/`
 - **Image build runs out of disk**: the toolchain + buildroot tree is
   ~10 GB. Free up at least 15 GB before starting.
 - **`build-plugin.sh` complains the cross-toolchain is missing**: the
   image was built but MPB's bootstrap didn't complete. Rebuild with
-  `docker build --no-cache -t <plugin>-cross mod-build/`.
+  `docker build --no-cache -t moddwarf-cross mod-build/`.
 - **Deployed but the plugin still looks old in MOD-UI**: two
   independent lilv caches on the Dwarf. `dwarf-deploy` restarts both
   `jack2` and `mod-ui` — if you deploy manually with `scp`, you have to
