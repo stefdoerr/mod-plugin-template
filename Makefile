@@ -16,6 +16,9 @@
 #                          (default /usr/lib/lv2; sudo for system install)
 #   make install-beta    - build beta + install via ./install.sh
 #   make dwarf           - cross-compile + scp to a connected MOD Dwarf
+#   make BETA=1 dwarf    - cross-compile + deploy the beta variant (distinct
+#                          URI/name) alongside the stable plugin, for a
+#                          side-by-side A/B on the Dwarf
 #   make release version=x.y.z  - build, package, tag, push, gh release
 
 # ---------------------------------------------------------------------------
@@ -158,7 +161,7 @@ DWARF_HOST   ?= 192.168.51.1
 DWARF_USER   ?= root
 DWARF_LV2DIR ?= /root/.lv2
 
-DWARF_BUNDLE := build/dwarf/$(PLUGIN).lv2
+DWARF_BUNDLE := build/dwarf/$(BUNDLE_NAME).lv2
 
 dwarf-image:
 	docker build -t $(CROSS_IMAGE) mod-build/
@@ -172,6 +175,7 @@ dwarf-build:
 	docker run --rm \
 		-e HOST_UID=$$(id -u) -e HOST_GID=$$(id -g) \
 		-e PLUGIN=$(PLUGIN) \
+		-e BETA=$(BETA) \
 		-v "$(CURDIR):/src:ro" \
 		-v "$(CURDIR)/build/dwarf:/out" \
 		$(CROSS_IMAGE) \

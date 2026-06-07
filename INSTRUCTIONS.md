@@ -113,6 +113,38 @@ unwritable from the host without chown. `build-plugin.sh` chowns
 `/out` to `$HOST_UID:$HOST_GID` at the end, which the Makefile passes
 in via `-e HOST_UID=$$(id -u) -e HOST_GID=$$(id -g)`. Don't remove this.
 
+### A/B two builds side-by-side on the Dwarf (`make BETA=1 dwarf`)
+The `BETA=1` flag builds a variant with a distinct URI / name / unique-id
+(`<plugin>-beta`, "… (Beta)") from the *same source*, so it coexists with the
+stable plugin instead of replacing it. The Dwarf cross-build honours it:
+`make BETA=1 dwarf-build` produces `build/dwarf/<plugin>-beta.lv2` and
+`make BETA=1 dwarf-deploy` scp's it alongside the stable bundle. Load both in
+one pedalboard to compare a work-in-progress against the known-good build on
+the actual hardware (CPU, sound, glitches) — invaluable when a change's effect
+can only be judged on-device. Gate experimental behaviour behind the
+`#ifdef <PLUGIN>_BETA` macro so stable stays untouched while beta carries the
+change; any difference then isolates exactly that change. The flag flows
+host→container via `-e BETA=$(BETA)`; `build-plugin.sh` renames the bundle and
+passes `BETA=1` to the inner make (which sets the macro).
+
+### Removing or renaming a port breaks saved pedalboards (mod-ui KeyError)
+If a plugin is already used in a saved pedalboard and you remove/rename one of its
+ports, mod-ui crashes **on boot** while reloading that board:
+`KeyError: '<old_symbol>'` in `host.py` `load_pb_plugins` (it looks the saved port
+symbol up in the plugin's current ports, and it's gone). The whole web UI fails to
+start — the device looks bricked.
+
+**Prevent it — the LV2 way is to never delete a control port, deprecate it.** Keep
+the old `lv2:symbol` as a hidden, ignored port (`kParameterIsHidden` → `notOnGUI`),
+give it a sensible default, and just don't read it in the DSP. Old pedalboards then
+load (the symbol still resolves) and it stays out of the UI.
+
+**Recover a device that's already stuck:** redeploy a build that still declares the
+old symbol (e.g. the deprecate-don't-delete fix above) — it boots again, no device
+surgery. Otherwise SSH in and move the offending board aside:
+`grep -rl '"<old_symbol>"' ~/.pedalboards/`, then
+`mv ~/.pedalboards/<name>.pedalboard /tmp/` and `systemctl restart jack2 mod-ui`.
+
 ---
 
 ## DSP patterns worth knowing
@@ -120,6 +152,64 @@ in via `-e HOST_UID=$$(id -u) -e HOST_GID=$$(id -g)`. Don't remove this.
 When the user describes an effect, these patterns are commonly needed.
 **None of them are pre-installed** in this template's
 `MyPluginPlugin.cpp` — it's a clean passthrough+gain. Add what you need.
+
+### Precompute everything you can at load time — NEVER on the audio thread
+`run()` must do as little as possible. **Anything whose result does not depend
+on the live input samples should be computed once at load/setup time** — in the
+constructor, `activate()`, or a `prepare(sampleRate)` helper — and then only
+*read* in `run()`. This includes:
+- window functions (Hann/Blackman), FFT twiddle factors, sine/wavetable LUTs;
+- filter coefficients, delay-line lengths, dB→linear and frequency tables;
+- anything built from `std::sin/cos/exp/pow/log` or `std::sqrt` over a range.
+
+The audio thread has a hard per-block deadline (≈2.67 ms at 128 frames / 48 kHz
+on the Dwarf). A "one-time" setup cost hidden in `run()` — even one that only
+fires the *first* time a feature is used — blows that deadline and **xruns**.
+The transcendental functions are the worst offenders: they're ~10–100× slower
+on the Dwarf's in-order ARM core than on an x86 dev machine, so a loop that
+looks instant in a host build can be a multi-millisecond spike on-device.
+
+> Real bug from this codebase: a 7200-point Hann window was built with
+> `std::cos` lazily on the first freeze (≈70 µs on x86 → est. 1–3 ms on the
+> Dwarf → guaranteed xrun / audible pop). Moving it into `prepare()` dropped the
+> press cost ~4×. If a value *can* be precomputed, precomputing it is not an
+> optimization — it's a correctness requirement for glitch-free audio.
+
+Anything you genuinely must compute per-block (e.g. spreading a large FFT over
+several callbacks) should be **chunked** so each block's slice stays tiny — never
+do the whole heavy operation in one callback.
+
+### Oscillator / wavetable banks: fixed-point phase, not float radians
+A LUT oscillator that stores phase as a **float in radians** is deceptively slow on the
+Dwarf's *in-order* ARM core. The classic inner loop —
+```cpp
+float ph;                            // radians
+int   i  = (int)(ph * lutScale);     // float -> int   ┐ FP<->GPR round-trip,
+float fr = ph * lutScale - (float)i; //         int -> float ┘ just to get the frac
+out = lut[i] + (lut[i+1] - lut[i]) * fr;
+ph += dphase;
+if (ph >= TWO_PI) ph -= TWO_PI;      // data-dependent wrap branch
+```
+— has two hazards an out-of-order x86 hides but an in-order core **cannot**: the
+`float→int→float` round-trip (which also bounces across the FP/integer register files)
+and the data-dependent **wrap branch**. It also won't vectorize — the table lookup is a
+gather. So each oscillator is a long serial dependency chain run one at a time, and a
+hundred of them can saturate the core even though they're trivial on a desktop.
+
+Use a **fixed-point phase accumulator** — a `uint32_t` whose full range is one cycle:
+```cpp
+uint32_t ph, inc;                          // inc = freq/fs * 2^32
+uint32_t idx = ph >> (32 - LUT_BITS);      // LUT index: a shift, no convert
+float    fr  = (ph & FRAC_MASK) * (1.0f / FRAC_SPAN);
+out = lut[idx] + (lut[idx+1] - lut[idx]) * fr;
+ph += inc;                                 // wraps on overflow — no branch
+```
+The round-trip and the branch are gone, and the compiler will happily unroll/pipeline it.
+For pitch modulation, branch *once per block* on `pitchScale == 1.0` so the common path
+stays pure-integer stepping; only the modulated path needs a float multiply + convert.
+Measured in this project (Boreas): ~2.2× faster in isolation, and it lifted the safe
+partial count on the Dwarf from 64 to 96 at the same CPU. (Same lesson as the precompute
+rule above — on a weak in-order core, *latency you can't hide* costs more than op count.)
 
 ### Equal-power dry/wet crossfade
 For a MIX knob (0 = dry, 1 = wet) that keeps output power constant
@@ -199,6 +289,54 @@ _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
 Or sprinkle a tiny DC offset (`1e-25f`) into feedback paths.
 
 ---
+
+## Footswitch / button port behaviors (latch / momentary / trigger)
+
+How a boolean control port behaves when a user assigns it to a **hardware
+footswitch** on the Dwarf is decided by its **static LV2 port properties** (read
+once at load time — a plugin parameter can NOT change it at runtime; see the
+mutual-exclusivity note below for why that matters). MOD offers three behaviors:
+
+| Behavior | Port properties | Footswitch acts as |
+|---|---|---|
+| **Latch** (toggle) | `lv2:toggled` | press flips & holds 0↔1 |
+| **Momentary** (held) | `lv2:toggled` + `mod:preferMomentaryOnByDefault` (NOT trigger) | 1 while held, 0 on release |
+| **Trigger** (pulse) | `lv2:toggled` + `pprops:trigger` | 1 for one block on press, then auto-off |
+
+Rules of thumb:
+- "**Do X on every press**" (stack a layer, tap, re-trigger) → **trigger**.
+- "**X only while held**" (hold-to-freeze, momentary boost) → **momentary**.
+- Trigger and momentary are **mutually exclusive on one port** — a port is *either*
+  pulse-capable *or* hold-capable. A plugin "mode" parameter can't switch a single
+  footswitch between them (properties are static). If you need both gestures, expose
+  **separate ports** (separate footswitches).
+
+### Emitting them from DPF
+- **Trigger**: set the `kParameterIsTrigger` hint — DPF emits `pprops:trigger` +
+  `lv2:toggled`. (Officially supported; it includes `kParameterIsBoolean`.)
+- **Latch**: `kParameterIsBoolean` → `lv2:toggled`.
+- **Momentary**: DPF has **no** hint for `mod:preferMomentaryOnByDefault` (a
+  MOD-specific property), so declare the port boolean and **patch the property into
+  the generated TTL** after `generate-ttl.sh`. `generate-ttl.sh` rewrites the TTL
+  fresh each build, so the patch never accumulates:
+  ```make
+  ttl: plugin dpf/utils/lv2_ttl_generator
+  	@$(CURDIR)/dpf/utils/generate-ttl.sh
+  	@for sym in hold clear; do \
+  		sed -i "/lv2:symbol \"$$sym\" ;/a\        lv2:portProperty mod:preferMomentaryOnByDefault ;" \
+  			"$(BUNDLE)/$(BUNDLE_NAME).ttl"; \
+  	done
+  ```
+  DPF already declares the `mod:` prefix in the generated TTL, so only the property
+  line is needed. This runs inside the Dwarf cross-build too (`build-plugin.sh` calls
+  `make all`), so the property reaches both bundles.
+
+### Reading them in the plugin
+The host delivers 1 then 0; do rising/falling **edge detection** in `run()` (track
+the previous value). For a **trigger** footswitch act ONLY on the rising edge — the
+auto-off falling edge must not undo the action. For a **momentary** footswitch act on
+both edges (press = engage, release = release), or measure how long it stays 1 to
+tell a tap from a hold.
 
 ## modgui patterns
 
