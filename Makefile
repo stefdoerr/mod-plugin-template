@@ -223,10 +223,19 @@ DIST_DIR := dist
 LINUX_TARBALL := $(PLUGIN)-v$(version)-linux-x86_64.tar.gz
 DWARF_TARBALL := $(PLUGIN)-v$(version)-dwarf-aarch64.tar.gz
 
+# Requires the VERSION file to already say $(version) so the tarball name
+# can't disagree with the version baked into the binaries — `make release`
+# bumps the file automatically.
 release-build:
 	@if [ -z "$(version)" ]; then \
 		echo "error: version is required."; \
 		echo "       usage: make release-build version=x.y.z"; \
+		exit 1; \
+	fi
+	@if [ "$$(cat VERSION)" != "$(version)" ]; then \
+		echo "error: VERSION file says $$(cat VERSION), but version=$(version)."; \
+		echo "       'make release version=$(version)' bumps it automatically,"; \
+		echo "       or update the VERSION file first."; \
 		exit 1; \
 	fi
 	@echo "==> Building desktop bundle (Linux x86_64)"
@@ -240,7 +249,16 @@ release-build:
 	@echo "Built release artefacts in $(DIST_DIR)/:"
 	@ls -lh $(DIST_DIR)/$(PLUGIN)-v$(version)-*.tar.gz
 
-release: release-build
+# The version flows from here into everything else: the VERSION file is
+# bumped and committed BEFORE the build, so the binaries, the generated
+# TTL (lv2:minorVersion / lv2:microVersion) and the tag all agree — no
+# manual source edit needed per release.
+release:
+	@if [ -z "$(version)" ]; then \
+		echo "error: version is required."; \
+		echo "       usage: make release version=x.y.z"; \
+		exit 1; \
+	fi
 	@if [ -n "$$(git status --porcelain)" ]; then \
 		echo "error: working tree is dirty. Commit or stash first."; \
 		git status --short; \
@@ -250,6 +268,13 @@ release: release-build
 		echo "error: tag v$(version) already exists locally."; \
 		exit 1; \
 	fi
+	@if [ "$$(cat VERSION)" != "$(version)" ]; then \
+		echo "==> Bumping VERSION $$(cat VERSION) -> $(version)"; \
+		printf '%s\n' "$(version)" > VERSION; \
+		git add VERSION; \
+		git commit -m "Bump version to $(version)"; \
+	fi
+	$(MAKE) release-build version=$(version)
 	@echo "==> Pushing branch (so the tagged commit is reachable on origin)"
 	git push
 	@echo "==> Tagging v$(version)"

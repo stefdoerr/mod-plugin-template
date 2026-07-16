@@ -19,6 +19,22 @@ else
 NAME = myplugin
 endif
 
+# Plugin version — the top-level VERSION file is the single source of
+# truth (`make release` bumps and commits it to match the release tag).
+# Injected as preprocessor defines so getVersion() and the generated LV2
+# TTL (lv2:minorVersion / lv2:microVersion) always report the released
+# version. Travels through CXXFLAGS for the same reason as the BETA
+# macro above. The macro names are deliberately NOT plugin-prefixed so
+# forks don't need to rename them.
+PLUGIN_VERSION := $(strip $(shell cat ../../VERSION 2>/dev/null))
+ifeq ($(PLUGIN_VERSION),)
+$(error VERSION file not found at ../../VERSION)
+endif
+PLUGIN_VERSION_PARTS := $(subst ., ,$(PLUGIN_VERSION))
+CXXFLAGS += -DPLUGIN_VERSION_MAJOR=$(word 1,$(PLUGIN_VERSION_PARTS)) \
+            -DPLUGIN_VERSION_MINOR=$(word 2,$(PLUGIN_VERSION_PARTS)) \
+            -DPLUGIN_VERSION_MICRO=$(word 3,$(PLUGIN_VERSION_PARTS))
+
 # Source files (DPF's makefile expects FILES_DSP for DSP-only plugins,
 # FILES_UI when there's a native UI — but we use modgui for the MOD GUI,
 # so DSP-only here).

@@ -562,7 +562,11 @@ horizontally in the pedalboard view.
 5. **Then test on Dwarf if applicable:** `make dwarf`. Hard-refresh the
    MOD-UI browser tab. Drag the plugin onto a pedalboard.
 6. **Release when stable:** `make release version=x.y.z`. Refuses on a
-   dirty tree and uploads both bundles to a fresh GitHub release.
+   dirty tree and uploads both bundles to a fresh GitHub release. Bumps
+   and commits the top-level `VERSION` file before building, so the
+   plugin's LV2 version metadata (`getVersion()` → `lv2:minorVersion` /
+   `lv2:microVersion` in the TTL) automatically tracks the release tag —
+   never hardcode a version in the source.
 
 If something looks broken on the Dwarf but right on desktop, the cause
 is almost always one of:

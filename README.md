@@ -58,7 +58,7 @@ rename to an LLM.
 | `make dwarf-build`            | Cross-compile → `build/dwarf/myplugin.lv2` (~10 s) |
 | `make dwarf-deploy`           | scp the bundle to a connected Dwarf + restart services |
 | `make dwarf`                  | Cross-build + deploy in one step |
-| `make release version=0.0.1`  | Build, package, tag, push, and `gh release create` with both bundles attached |
+| `make release version=0.0.1`  | Bump `VERSION`, build, package, tag, push, and `gh release create` with both bundles attached |
 | `make clean`                  | Delete `bin/`, `build/` |
 
 The `dwarf-*` targets need Docker. `make release` needs the `gh` CLI

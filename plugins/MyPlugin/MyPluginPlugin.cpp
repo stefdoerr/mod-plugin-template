@@ -41,7 +41,17 @@ protected:
     const char* getMaker()       const override { return DISTRHO_PLUGIN_BRAND; }
     const char* getHomePage()    const override { return DISTRHO_PLUGIN_URI; }
     const char* getLicense()     const override { return "ISC"; }
-    uint32_t    getVersion()     const override { return d_version(0, 1, 0); }
+    uint32_t    getVersion()     const override
+    {
+        // Injected by the Makefile from the top-level VERSION file, which
+        // `make release` keeps in sync with the release tag. The fallback
+        // marks builds outside the Makefile as 0.0.0.
+#ifdef PLUGIN_VERSION_MAJOR
+        return d_version(PLUGIN_VERSION_MAJOR, PLUGIN_VERSION_MINOR, PLUGIN_VERSION_MICRO);
+#else
+        return d_version(0, 0, 0);
+#endif
+    }
     const char* getDescription() const override
     {
         return "A minimal mono-to-stereo plugin template.";
