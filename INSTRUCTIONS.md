@@ -545,6 +545,55 @@ horizontally in the pedalboard view.
 
 ---
 
+## User manual (PDF)
+
+Every plugin ships a beginner-facing PDF manual as a GitHub release asset.
+`docs/manual/myplugin-manual.html` is a working, annotated demo — read its
+HTML comments before writing one; they carry the conventions inline.
+
+### How it's built and released
+
+- **Source of truth:** `docs/manual/<plugin>-manual.html` — ONE self-contained
+  HTML file with inline print CSS. No external stylesheets, fonts, or JS.
+- **`make manual`** renders it to `docs/manual/<plugin>-manual.pdf` with
+  headless Chrome (`--headless --no-pdf-header-footer --print-to-pdf=...`,
+  A4). Needs `google-chrome` on the machine (override with `CHROME=...`).
+- **Both files are committed.** The PDF is generated output — never hand-edit
+  it; regenerate and re-commit it whenever the HTML changes. `make release`
+  attaches the committed PDF to the GitHub release alongside the two bundle
+  tarballs.
+
+### Writing rules — the audience is a musician, not a developer
+
+- The reader uses MOD Desktop or a Dwarf and has no interest in the code or
+  the DSP. No FFTs, no port symbols, no build-from-source beyond a one-line
+  pointer at the repo. One plain-language sentence may gesture at *how* it
+  works; never more.
+- Describe every control **by ear** at min / default / max ("very slow, bowed
+  swells", not "attack 4 s"). Footswitches first (table), then one knob card
+  per knob, each with a numbered badge matching a pin over the pedal
+  screenshot.
+- Content outline that works, scaled to the plugin's complexity: cover →
+  what it does → quick start (numbered steps ending in sound) → the controls
+  → recipes (named knob settings + what to listen for) → tips (the mistakes
+  every first-timer makes) → installing (Desktop + Dwarf, from the release
+  tarballs) → Q&A → specifications.
+
+### Print-CSS gotchas (all annotated in the demo file too)
+
+- `@page { size: A4; margin: 18mm 16mm }` plus `@page :first { margin: 0 }`
+  gives a full-bleed cover with normal margins everywhere else.
+- The cover div is 210mm × **296mm** — 1mm shy of A4 on purpose; at exactly
+  297mm print rounding can spill a blank page 2.
+- `section { break-before: page; }` starts each chapter on a fresh page;
+  put `break-inside: avoid` on tables, cards, and notes so they never split
+  across pages.
+- Reference the pedal screenshot by **relative path** into
+  `plugins/<Name>/modgui/` — the HTML then only renders correctly from inside
+  the repo, which is fine because the PDF is the shipped artifact.
+
+---
+
 ## Workflow when the user gives you a task
 
 1. **Read INSTRUCTIONS.md** (this file) and **`Makefile`** before touching
@@ -562,11 +611,13 @@ horizontally in the pedalboard view.
 5. **Then test on Dwarf if applicable:** `make dwarf`. Hard-refresh the
    MOD-UI browser tab. Drag the plugin onto a pedalboard.
 6. **Release when stable:** `make release version=x.y.z`. Refuses on a
-   dirty tree and uploads both bundles to a fresh GitHub release. Bumps
-   and commits the top-level `VERSION` file before building, so the
-   plugin's LV2 version metadata (`getVersion()` → `lv2:minorVersion` /
-   `lv2:microVersion` in the TTL) automatically tracks the release tag —
-   never hardcode a version in the source.
+   dirty tree and uploads both bundles plus the PDF manual to a fresh
+   GitHub release. Bumps and commits the top-level `VERSION` file before
+   building, so the plugin's LV2 version metadata (`getVersion()` →
+   `lv2:minorVersion` / `lv2:microVersion` in the TTL) automatically
+   tracks the release tag — never hardcode a version in the source. If
+   the manual HTML changed since the last release, run `make manual` and
+   commit the regenerated PDF first (see "User manual (PDF)" above).
 
 If something looks broken on the Dwarf but right on desktop, the cause
 is almost always one of:

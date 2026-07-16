@@ -134,6 +134,23 @@ install: all
 	@mkdir -p "$(LV2_DIR)"
 	cp -rL "$(BUNDLE)" "$(LV2_DIR)/"
 
+# ---------------------------------------------------------------------------
+# manual: render the beginner PDF manual from its HTML source via headless
+# Chrome. The PDF is generated output — edit the HTML, re-run this, and
+# commit BOTH files (the release attaches the committed PDF). See "User
+# manual (PDF)" in INSTRUCTIONS.md and the annotated demo manual itself.
+
+MANUAL_HTML := docs/manual/$(PLUGIN)-manual.html
+MANUAL_PDF  := docs/manual/$(PLUGIN)-manual.pdf
+CHROME      ?= google-chrome
+
+manual:
+	$(CHROME) --headless --disable-gpu --no-pdf-header-footer \
+		--print-to-pdf=$(MANUAL_PDF) $(MANUAL_HTML)
+	@echo "==> $(MANUAL_PDF)"
+
+.PHONY: manual
+
 beta:
 	$(MAKE) BETA=1
 
@@ -280,10 +297,11 @@ release:
 	@echo "==> Tagging v$(version)"
 	git tag -a "v$(version)" -m "Release v$(version)"
 	git push origin "v$(version)"
-	@echo "==> Creating GitHub release v$(version) with both bundles attached"
+	@echo "==> Creating GitHub release v$(version) with both bundles + manual attached"
 	gh release create "v$(version)" \
 		"$(DIST_DIR)/$(LINUX_TARBALL)" \
 		"$(DIST_DIR)/$(DWARF_TARBALL)" \
+		"$(MANUAL_PDF)" \
 		--title "v$(version)" \
 		--generate-notes
 	@echo

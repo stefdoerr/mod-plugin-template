@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>My Plugin User Manual</title>
+<!-- =========================================================================
+  DEMO USER MANUAL — this file is a working, annotated example of the manual
+  every plugin built from this template should ship. Read the comments; they
+  explain the conventions. See also "User manual (PDF)" in INSTRUCTIONS.md.
+
+  The rules:
+    - This ONE self-contained HTML file is the source of truth. Inline CSS
+      only — no external stylesheets, fonts, or JS.
+    - `make manual` renders it to <plugin>-manual.pdf with headless Chrome
+      (A4). Edit the HTML, regenerate, commit BOTH files. Never edit the PDF.
+    - `make release` attaches the PDF to the GitHub release automatically.
+    - Audience: a musician on MOD Desktop or a MOD Dwarf. No code, no DSP
+      math, no build instructions. Describe controls BY EAR.
+    - Content outline that works (scale to your plugin's complexity):
+      cover → what it does → quick start → the controls → recipes → tips →
+      installing → Q&A → specifications. This minimal gain plugin skips
+      recipes/tips; a real pedal should have both (see the boreas manual for
+      a full-size example).
+========================================================================== -->
+<style>
+/* ==========================================================================
+   Print source. Rendered to PDF with headless Chrome via `make manual` (A4).
+   Swap the palette to match your pedal's modgui face — these are neutral
+   template colors.
+   ========================================================================== */
+
+:root {
+    --dark:   #22252a;   /* cover background — match the pedal face      */
+    --dark2:  #2e3238;
+    --accent: #d9a441;   /* brand accent                                 */
+    --acc-d:  #a87b28;   /* darker accent for headings on white          */
+    --ink:    #26292e;   /* body text                                    */
+    --muted:  #5f666e;   /* secondary text                               */
+    --line:   #dcdfe3;   /* hairlines / table borders                    */
+    --wash:   #f4f2ec;   /* light panel background                       */
+}
+
+/* A4 with a full-bleed first page: the cover supplies its own margins.   */
+@page        { size: A4; margin: 18mm 16mm; }
+@page :first { margin: 0; }
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    font-size: 10pt;
+    line-height: 1.55;
+}
+
+h2 {
+    font-size: 17pt;
+    color: var(--acc-d);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 4px;
+    margin: 0 0 10px 0;
+    break-after: avoid;
+}
+h3 {
+    font-size: 11.5pt;
+    color: var(--ink);
+    margin: 14px 0 6px 0;
+    break-after: avoid;
+}
+p  { margin: 0 0 8px 0; }
+code {
+    font-family: "DejaVu Sans Mono", "Liberation Mono", Menlo, Consolas, monospace;
+    background: var(--wash);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 0 3px;
+    font-size: 8.5pt;
+}
+pre {
+    font-family: "DejaVu Sans Mono", "Liberation Mono", Menlo, Consolas, monospace;
+    background: var(--wash);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 7px 10px;
+    font-size: 8pt;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    margin: 6px 0 10px 0;
+    break-inside: avoid;
+}
+
+/* Each <section> is a chapter and starts on a fresh page. Use .flow on a
+   section that should continue on the same page instead.                  */
+section { break-before: page; }
+section.flow { break-before: auto; margin-top: 22px; }
+.pb { break-before: page; }
+
+/* ---- cover ------------------------------------------------------------
+   Full-bleed dark page. Height is 296mm — 1mm SHY of A4 on purpose: at
+   exactly 297mm print rounding can spill a blank page 2.                  */
+.cover {
+    width: 210mm;
+    height: 296mm;
+    background:
+        radial-gradient(ellipse at 30% 10%, rgba(217, 164, 65, 0.14), transparent 55%),
+        radial-gradient(ellipse at 85% 90%, rgba(168, 123, 40, 0.18), transparent 60%),
+        linear-gradient(160deg, var(--dark) 0%, var(--dark2) 60%, #1a1d21 100%);
+    color: #f0ede6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20mm;
+}
+.cover .brand {
+    letter-spacing: 0.55em;
+    font-size: 10pt;
+    color: rgba(240, 237, 230, 0.6);
+    text-transform: uppercase;
+    margin-bottom: 4mm;
+}
+.cover h1 {
+    font-size: 46pt;
+    letter-spacing: 0.28em;
+    margin: 0 0 3mm 0.28em;    /* left inset balances the letter-spacing tail */
+    color: #f7f4ee;
+    font-weight: 700;
+}
+.cover .tagline {
+    font-size: 13pt;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    margin-bottom: 14mm;
+}
+.cover img, .cover .shot-placeholder {
+    width: 120mm;
+    border-radius: 4mm;
+    box-shadow: 0 6mm 18mm rgba(0, 0, 0, 0.55);
+    margin-bottom: 16mm;
+}
+.cover .shot-placeholder {
+    height: 60mm;
+    border: 1px dashed rgba(240, 237, 230, 0.4);
+    box-shadow: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(240, 237, 230, 0.5);
+    font-size: 10pt;
+}
+.cover .subtitle {
+    font-size: 12pt;
+    color: rgba(240, 237, 230, 0.9);
+    margin-bottom: 2mm;
+}
+.cover .edition {
+    font-size: 9.5pt;
+    color: rgba(240, 237, 230, 0.55);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+/* ---- pedal image with numbered callout badges --------------------------
+   Wrap the modgui screenshot in .pedal-map and drop absolutely-positioned
+   .pin badges over each control; the same numbers appear as .badge chips in
+   the control tables/cards below, so names map to positions at a glance.  */
+.pedal-map {
+    position: relative;
+    width: 118mm;
+    margin: 4mm auto 6mm auto;
+    break-inside: avoid;
+}
+.pedal-map img {
+    width: 100%;
+    display: block;
+    border-radius: 3mm;
+    box-shadow: 0 2mm 6mm rgba(34, 37, 42, 0.35);
+}
+.badge, .pedal-map .pin {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--acc-d);
+    color: #fff;
+    font-size: 7.5pt;
+    font-weight: 700;
+    line-height: 1;
+    flex: none;
+}
+.pedal-map .pin {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.85);
+}
+
+/* ---- control tables & knob cards ---- */
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 6px 0 12px 0;
+    break-inside: avoid;
+}
+th, td {
+    border: 1px solid var(--line);
+    padding: 5px 8px;
+    text-align: left;
+    vertical-align: top;
+}
+th {
+    background: var(--wash);
+    color: var(--acc-d);
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+td.ctl { white-space: nowrap; font-weight: 700; }
+
+.knob-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 6px;
+}
+.knob {
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 7px 9px 5px 9px;
+    break-inside: avoid;
+}
+.knob h4 {
+    margin: 0 0 3px 0;
+    font-size: 10.5pt;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.knob p { font-size: 9.2pt; margin-bottom: 4px; }
+.knob ul {
+    margin: 0;
+    padding-left: 14px;
+    font-size: 8.8pt;
+    color: var(--muted);
+}
+.knob li { margin-bottom: 1px; }
+.knob li b { color: var(--ink); font-weight: 600; }
+
+/* ---- tips / faq ---- */
+
+dl.faq { margin: 6px 0; }
+dl.faq dt {
+    font-weight: 700;
+    margin-top: 9px;
+    break-after: avoid;
+}
+dl.faq dd {
+    margin: 1px 0 0 0;
+    font-size: 9.4pt;
+}
+dl.faq .qa { break-inside: avoid; }
+
+/* ---- misc ---- */
+
+.note {
+    background: var(--wash);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 4px 4px 0;
+    padding: 6px 10px;
+    font-size: 9.3pt;
+    margin: 8px 0;
+    break-inside: avoid;
+}
+ol.steps { padding-left: 18px; margin: 4px 0 8px 0; }
+ol.steps li { margin-bottom: 5px; }
+a { color: var(--acc-d); text-decoration: none; }
+.credits {
+    margin-top: 14px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+    font-size: 8.8pt;
+    color: var(--muted);
+}
+</style>
+</head>
+<body>
+
+<!-- ======================================================= page 1: cover
+  A real manual puts the modgui screenshot here, referenced by RELATIVE path
+  into the plugin source tree, e.g.:
+
+    <img src="../../plugins/MyPlugin/modgui/screenshot-myplugin.png"
+         alt="The My Plugin pedal">
+
+  That path only resolves when rendering from inside the repo — which is fine,
+  because the PDF is the shipped artifact, not the HTML. The template has no
+  screenshot yet, so this demo shows a placeholder box instead. Swap it for
+  the <img> as soon as your fork has one (modgui screenshots are REQUIRED for
+  MOD anyway — see INSTRUCTIONS.md).
+-->
+<div class="cover">
+    <div class="brand">myplugin</div>
+    <h1>MY PLUGIN</h1>
+    <div class="tagline">One knob. Exactly as loud as you want.</div>
+    <div class="shot-placeholder">pedal screenshot goes here</div>
+    <div class="subtitle">Gain utility for MOD Desktop and MOD Dwarf</div>
+    <div class="edition">User Manual &middot; July 2026 edition</div>
+</div>
+
+<!-- ============================================ page 2: intro + quick start
+  "What it does" answers, in the reader's language, the only question that
+  matters: what will I hear? One plain-language sentence may gesture at HOW
+  it works; never more. Then Quick start: numbered steps from "drag it onto
+  the pedalboard" to "you are hearing the effect".
+-->
+<section>
+    <h2>What My Plugin does</h2>
+    <p>
+        My Plugin is a <b>volume tool</b>. It takes your mono signal, adjusts its
+        level with a single <b>GAIN</b> knob — from a whisper 24&nbsp;dB quieter to a
+        roar 24&nbsp;dB louder — and sends it to both sides of a stereo output.
+    </p>
+    <p>
+        Use it to balance one instrument against another, to push a quiet synth up
+        in front of a band, or as a clean boost anywhere in your chain.
+    </p>
+    <div class="note">
+        <b>Good to know:</b> gain changes are smoothed, so sweeping the knob while
+        you play never clicks or zippers — even under automation.
+    </div>
+
+    <h2 style="margin-top:18px">Quick start</h2>
+    <ol class="steps">
+        <li><b>Add My Plugin to your pedalboard.</b> In the MOD web interface, find it
+            under the brand <b>myplugin</b> and drag it into your signal chain.</li>
+        <li><b>Play.</b> At the default (noon) the plugin passes your signal through
+            at exactly the level it came in.</li>
+        <li><b>Turn GAIN</b> right to boost, left to cut, until it sits where you
+            want it in the mix.</li>
+    </ol>
+
+    <!-- A real pedal manual would continue with <section> Recipes (named knob
+         settings + what to listen for) and Tips (the mistakes every first-time
+         user makes). A one-knob utility has nothing to say there; your plugin
+         probably does. -->
+</section>
+
+<!-- ================================================== page 3: the controls
+  Footswitches first (as a table), then one .knob card per knob. Every control
+  gets a numbered .badge that matches a .pin positioned over the screenshot in
+  a .pedal-map — with a real screenshot it looks like this:
+
+    <div class="pedal-map">
+        <img src="../../plugins/MyPlugin/modgui/screenshot-myplugin.png"
+             alt="My Plugin control layout">
+        <span class="pin" style="left:50%; top:30%;">1</span>
+    </div>
+
+  Describe each knob BY EAR at min / default / max — what the listener hears,
+  not what the parameter does ("very slow, bowed swells", not "attack 4 s").
+-->
+<section>
+    <h2>The controls</h2>
+
+    <div class="knob-grid">
+        <div class="knob">
+            <h4><span class="badge">1</span> GAIN</h4>
+            <p>How loud the output is compared to the input.</p>
+            <ul>
+                <li><b>Left (&minus;24&nbsp;dB):</b> a distant whisper</li>
+                <li><b>Noon (0&nbsp;dB, default):</b> exactly as loud as what comes in</li>
+                <li><b>Right (+24&nbsp;dB):</b> a big, clean boost</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="note">
+        <b>Stereo out of a mono pedal?</b> My Plugin sends the same signal to left
+        and right, so it slots cleanly in front of stereo effects like reverb,
+        delay, or chorus.
+    </div>
+</section>
+
+<!-- ============================================= page 4: installing + Q&A
+  Installation covers exactly two audiences: MOD Desktop users (unzip into the
+  user-plugin folder) and Dwarf users (copy onto the unit). Point at the
+  GitHub release assets — the PDF they are reading was attached to the same
+  release as the tarballs. Keep the developer route ("build from source") to
+  a one-line pointer at the repo.
+-->
+<section>
+    <h2>Installing My Plugin</h2>
+    <p>
+        Download the build for your platform from the plugin's
+        <b>GitHub Releases</b> page — each release ships a MOD&nbsp;Desktop bundle
+        (<code>myplugin-vX.Y.Z-linux-x86_64.tar.gz</code>) and a MOD&nbsp;Dwarf bundle
+        (<code>myplugin-vX.Y.Z-dwarf-aarch64.tar.gz</code>).
+    </p>
+
+    <h3>MOD Desktop (Linux)</h3>
+    <ol class="steps">
+        <li>Extract the archive: <code>tar xzf myplugin-vX.Y.Z-linux-x86_64.tar.gz</code></li>
+        <li>Move the extracted <code>myplugin.lv2</code> folder into
+            <code>~/Documents/MOD Desktop/lv2/</code></li>
+        <li>Restart MOD Desktop. My Plugin appears in the plugin library under
+            the brand <b>myplugin</b>.</li>
+    </ol>
+
+    <h3>MOD Dwarf</h3>
+    <ol class="steps">
+        <li>Connect the Dwarf over USB and extract the Dwarf archive on your computer.</li>
+        <li>Copy the bundle onto the unit:
+            <pre>scp -O -r myplugin.lv2 root@192.168.51.1:/root/.lv2/</pre></li>
+        <li>Restart the audio services (or simply reboot the Dwarf):
+            <pre>ssh root@192.168.51.1 'systemctl restart jack2 mod-ui'</pre></li>
+        <li>Hard-refresh the MOD web interface in your browser
+            (<b>Ctrl-Shift-R</b>) and drag My Plugin onto a pedalboard.</li>
+    </ol>
+
+    <h2 class="pb" style="margin-top:0">Questions &amp; answers</h2>
+    <dl class="faq">
+        <div class="qa">
+            <dt>I hear nothing after installing.</dt>
+            <dd>Make sure the pedal is connected on the pedalboard — the input jack on
+                its left, both output jacks on its right — and that GAIN is not fully
+                left. On the Dwarf, restart <code>jack2</code> and <code>mod-ui</code>
+                (or reboot) after copying the bundle.</dd>
+        </div>
+        <div class="qa">
+            <dt>Does the boost distort?</dt>
+            <dd>My Plugin itself stays clean at any setting, but a big boost can push
+                the <i>next</i> pedal — or the output stage — into clipping. If you hear
+                crackling, back GAIN off or lower the level further down the chain.</dd>
+        </div>
+    </dl>
+
+    <h2 style="margin-top:16px">Specifications</h2>
+    <table>
+        <tr><th style="width:34%">Format</th><td>LV2 audio plugin, mono in &rarr; stereo out</td></tr>
+        <tr><th>Platforms</th><td>MOD Desktop (Linux x86_64), MOD Dwarf (aarch64)</td></tr>
+        <tr><th>Controls</th><td>Gain: &minus;24&nbsp;dB &hellip; +24&nbsp;dB, default 0&nbsp;dB</td></tr>
+        <tr><th>Latency</th><td>None</td></tr>
+    </table>
+
+    <p class="credits">
+        My Plugin is free software built with the DISTRHO Plugin Framework.
+        Manual edition July 2026 — for the plugin version it shipped with;
+        see the GitHub release page for the latest.
+    </p>
+</section>
+
+</body>
+</html>
