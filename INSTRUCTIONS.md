@@ -258,6 +258,10 @@ fGateOpen += (target - fGateOpen) * fSmoothCoef;           // ~8 ms transition
 Coefficients: `releaseCoef = exp(-1 / (fs * 0.080))`, `smoothCoef =
 1 - exp(-1 / (fs * 0.008))`.
 
+If the gate can be turned off (threshold = 0), route that case through the
+same smoother with `target = 1.0f` — assigning `fGateOpen = 1.0f` directly
+steps the gain in one sample and clicks when the gate was closed.
+
 ### DC blocker (one-pole HPF)
 ```cpp
 y = x - prevX + alpha * prevY;     // alpha = 0.996 → fc ≈ 30 Hz at 48k
