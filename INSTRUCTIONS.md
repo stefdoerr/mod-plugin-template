@@ -549,6 +549,61 @@ horizontally in the pedalboard view.
 
 ---
 
+## Testing the DSP
+
+`tests/test_gain.cpp` is a working, annotated demo. `make test` builds and
+runs every `tests/test_*.cpp` under AddressSanitizer — OOB reads/writes in
+delay lines and buffers become hard failures instead of latent corruption.
+Write a regression test for every DSP bug you fix, and run `make test`
+before claiming a fix works.
+
+### The harness — no host required
+
+DPF's `PluginExporter` drives the plugin directly:
+
+```cpp
+#include "src/DistrhoPluginInternal.hpp"      // via -Idpf/distrho
+USE_NAMESPACE_DISTRHO
+static bool requestStub(void*, uint32_t, float) { return true; }
+
+d_nextBufferSize = 512;                        // set BEFORE constructing —
+d_nextSampleRate = 48000.0;                    // the Plugin ctor asserts on them
+d_nextCanRequestParameterValueChanges = true;
+PluginExporter plugin(nullptr, nullptr, requestStub, nullptr);
+
+plugin.setParameterValue(kParamIndex, value);  // plugin-side enum index!
+plugin.activate();
+plugin.run(inputs, outputs, frames);           // buffers you synthesize
+```
+
+Each test is a plain `main()` that prints `FAIL:` lines and returns nonzero —
+no test framework. `make test` compiles it together with the plugin source
+and `dpf/distrho/src/DistrhoPlugin.cpp`.
+
+### What to assert
+
+- **Simple DSP** (gain, panning, clamping): exact output samples.
+- **Resonant / smoothed DSP** (filters, envelopes, feedback): RMS or peak
+  over a window after a warm-up run, never single samples. Compare windows
+  against each other (ratios) rather than magic absolute numbers.
+- **Bug repros:** reconstruct the exact edge condition first and watch the
+  test fail before fixing (e.g. scan the float grid for a delay length that
+  rounds onto the buffer boundary, then let ASAN catch the OOB read).
+
+### Gotchas
+
+- Parameter indices in the harness are the **plugin-side enum values**; the
+  LV2 port numbers in the TTL are offset by the audio ports. Don't mix them.
+- Parameter changes take effect on the **next `run()` call** — there is no
+  mid-block application in this harness.
+- The `PLUGIN_VERSION_*` macros from the VERSION file aren't defined in test
+  builds (tests compile the plugin source directly); `getVersion()` falls
+  back to 0.0.0, which is harmless.
+- Test binaries land in `build/tests/` (already gitignored). Only the
+  `.cpp` sources are tracked.
+
+---
+
 ## User manual (PDF)
 
 Every plugin ships a beginner-facing PDF manual as a GitHub release asset.
@@ -610,7 +665,8 @@ HTML comments before writing one; they carry the conventions inline.
 3. **For modgui work:** edit the three files in `modgui/`. Drop a PNG
    into `modgui/knobs/` and override `.mod-knob-image` in the CSS to
    replace the default MOD knob sprite.
-4. **Build + test on desktop first:** `make && ./install.sh`. Restart
+4. **Build + test on desktop first:** `make test` runs the DSP regression
+   tests (see "Testing the DSP"); then `make && ./install.sh`. Restart
    MOD Desktop. Drag the plugin onto a pedalboard.
 5. **Then test on Dwarf if applicable:** `make dwarf`. Hard-refresh the
    MOD-UI browser tab. Drag the plugin onto a pedalboard.

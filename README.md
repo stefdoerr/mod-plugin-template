@@ -58,6 +58,7 @@ rename to an LLM.
 | `make dwarf-build`            | Cross-compile → `build/dwarf/myplugin.lv2` (~10 s) |
 | `make dwarf-deploy`           | scp the bundle to a connected Dwarf + restart services |
 | `make dwarf`                  | Cross-build + deploy in one step |
+| `make test`                   | Build + run the DSP regression tests in `tests/` under ASAN |
 | `make manual`                 | Render `docs/manual/*.html` → PDF via headless Chrome (commit both) |
 | `make release version=0.0.1`  | Bump `VERSION`, build, package, tag, push, and `gh release create` with both bundles + the manual PDF attached |
 | `make clean`                  | Delete `bin/`, `build/` |
@@ -76,6 +77,7 @@ authenticated to the GitHub repo.
 │   ├── modgui.ttl                — MOD GUI declaration
 │   └── Makefile                  — DPF inner build glue (BETA=1 retags here)
 ├── docs/manual/                  — beginner PDF manual (annotated demo; HTML source + generated PDF)
+├── tests/                        — host-less DSP regression tests (annotated demo; `make test`)
 ├── dpf/                          — DISTRHO Plugin Framework (git submodule)
 ├── mod-build/                    — Self-contained Dwarf cross-build setup
 │   ├── Dockerfile                — vendored MPB Dockerfile, builds aarch64 toolchain
