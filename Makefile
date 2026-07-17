@@ -103,6 +103,10 @@ modgui: ttl
 	@if [ -d $(PLUGIN_DIR)/modgui/knobs ]; then \
 		cp -rf $(PLUGIN_DIR)/modgui/knobs $(BUNDLE)/modgui/; \
 	fi
+	@# Beginner PDF manual -> "documentation" button in the plugin info
+	@# dialog (referenced from modgui.ttl). Copied under a FIXED name so a
+	@# plugin rename can't break the TTL reference.
+	cp -f $(MANUAL_PDF) $(BUNDLE)/modgui/manual.pdf
 	sed -e 's|$(PLUGIN_URI_BASE)/$(PLUGIN)|$(PLUGIN_URI)|g' \
 	    -e 's|modgui:brand "$(BRAND)"|modgui:brand "$(BUNDLE_NAME)"|' \
 	    -e 's|modgui:label "$(LABEL)"|modgui:label "$(BUNDLE_LABEL)"|' \

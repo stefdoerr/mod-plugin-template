@@ -621,6 +621,12 @@ HTML comments before writing one; they carry the conventions inline.
   it; regenerate and re-commit it whenever the HTML changes. `make release`
   attaches the committed PDF to the GitHub release alongside the two bundle
   tarballs.
+- **The bundle ships it too:** the `modgui` build step copies the PDF into
+  the bundle as `modgui/manual.pdf`, and `modgui.ttl` declares it via
+  `modgui:documentation <modgui/manual.pdf>` — mod-ui then shows a
+  "documentation" button in the plugin info dialog. The in-bundle name is
+  deliberately fixed (`manual.pdf`, not `<plugin>-manual.pdf`) so renaming
+  the plugin can't silently break the TTL reference.
 
 ### Writing rules — the audience is a musician, not a developer
 

@@ -33,6 +33,19 @@
 #define DISTRHO_PLUGIN_UNIQUE_ID dMyP
 #endif
 
+// Real project homepage — hosts surface it (MOD's info dialog links its
+// "See online" button here). The LV2 URI above is just an identifier, not
+// a web page; returning it gives users a dead link. Change when forking.
+#define PLUGIN_HOMEPAGE "https://github.com/stefdoerr/mod-plugin-template"
+
+// LV2 plugin class -> the "Category" shown in MOD's plugin info / store.
+// Without it the plugin shows "Category: None". Pick the class matching
+// your effect: lv2:DelayPlugin, lv2:DistortionPlugin, lv2:DynamicsPlugin,
+// lv2:FilterPlugin, lv2:ModulatorPlugin, lv2:ReverbPlugin,
+// lv2:SimulatorPlugin, lv2:SpatialPlugin, lv2:SpectralPlugin,
+// lv2:GeneratorPlugin, ... (mod-ui maps these to its category names).
+#define DISTRHO_PLUGIN_LV2_CATEGORY   "lv2:UtilityPlugin"
+
 // Feature flags. Adjust as your plugin grows.
 #define DISTRHO_PLUGIN_HAS_UI         0    // 0 = no native UI; modgui supplies the GUI on MOD
 #define DISTRHO_PLUGIN_IS_RT_SAFE     1    // 1 = no allocs / locks / I/O in run()

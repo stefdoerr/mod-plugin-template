@@ -39,7 +39,7 @@ protected:
 
     const char* getLabel()       const override { return DISTRHO_PLUGIN_BRAND; }
     const char* getMaker()       const override { return DISTRHO_PLUGIN_BRAND; }
-    const char* getHomePage()    const override { return DISTRHO_PLUGIN_URI; }
+    const char* getHomePage()    const override { return PLUGIN_HOMEPAGE; }
     const char* getLicense()     const override { return "ISC"; }
     uint32_t    getVersion()     const override
     {

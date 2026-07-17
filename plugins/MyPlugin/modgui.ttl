@@ -8,11 +8,18 @@
         modgui:iconTemplate       <modgui/icon-myplugin.html> ;
         modgui:stylesheet         <modgui/stylesheet-myplugin.css> ;
         modgui:javascript         <modgui/script-myplugin.js> ;
-        # Add `modgui:screenshot <modgui/screenshot-myplugin.png>` and
-        # `modgui:thumbnail <modgui/thumbnail-myplugin.png>` when you
-        # have a finalised pedal layout — MOD-UI uses them in the plugin
-        # library preview. Take the screenshot from inside MOD Desktop /
-        # MOD-UI itself rather than rendering locally.
+        # Beginner PDF manual — when declared, mod-ui shows a "documentation"
+        # button in the plugin info dialog. The Makefile's modgui target
+        # copies docs/manual/<plugin>-manual.pdf into the bundle under this
+        # FIXED name, so renaming the plugin can't break the reference.
+        modgui:documentation      <modgui/manual.pdf> ;
+        # Screenshot + thumbnail are REQUIRED, not optional: MOD Desktop's
+        # plugin scanner segfaults at startup when a modgui omits them (see
+        # "Screenshots — REQUIRED" in INSTRUCTIONS.md). The shipped PNGs are
+        # labelled placeholders — replace them with real captures from inside
+        # MOD Desktop / MOD-UI once the pedal layout is final.
+        modgui:screenshot         <modgui/screenshot-myplugin.png> ;
+        modgui:thumbnail          <modgui/thumbnail-myplugin.png> ;
 
         # Mustache tokens MOD-UI substitutes at render time. `brand` and
         # `label` are the strings shown on the pedal frame; `model` and
