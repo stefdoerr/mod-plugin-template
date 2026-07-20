@@ -60,11 +60,28 @@ rename to an LLM.
 | `make dwarf`                  | Cross-build + deploy in one step |
 | `make test`                   | Build + run the DSP regression tests in `tests/` under ASAN |
 | `make manual`                 | Render `docs/manual/*.html` → PDF via headless Chrome (commit both) |
-| `make release version=0.0.1`  | Bump `VERSION`, build, package, tag, push, and `gh release create` with both bundles + the manual PDF attached |
+| `make patchstorage-build`     | Cross-build the three Patchstorage bundles into `build/patchstorage/<slug>/` |
+| `make patchstorage-prepare`   | Assemble + inspect the upload payload under `build/ps-upload/dist/` |
+| `make patchstorage PS_USER=<username>` | Build, prepare, and push to patchstorage.com (password prompted) |
+| `make release version=0.0.1`  | Bump `VERSION`, build, package, tag, push, and `gh release create` with all bundles + the manual PDF attached |
 | `make clean`                  | Delete `bin/`, `build/` |
 
-The `dwarf-*` targets need Docker. `make release` needs the `gh` CLI
-authenticated to the GitHub repo.
+The `dwarf-*` targets need Docker. `make patchstorage*` targets also need
+Docker (see "Publishing to Patchstorage" below). `make release` needs the
+`gh` CLI authenticated to the GitHub repo.
+
+### Publishing to Patchstorage
+This template also wires up publishing to [patchstorage.com](https://patchstorage.com)'s
+LV2-plugins platform (`linux-amd64`, `rpi-aarch64`, and `patchbox-os-arm32` targets):
+
+- `make patchstorage-build` — cross-build all three bundles
+- `make patchstorage-prepare` — assemble + inspect the upload payload before publishing
+- `make patchstorage PS_USER=<username>` — build, prepare, and push (password prompted
+  interactively)
+
+Fill in `patchstorage.json` at the repo root (`source_code_url` / `donate_url`)
+when you fork the template. See
+[`patchstorage-build/README.md`](patchstorage-build/README.md) for prerequisites and details.
 
 ## Project layout
 
@@ -83,6 +100,12 @@ authenticated to the GitHub repo.
 │   ├── Dockerfile                — vendored MPB Dockerfile, builds aarch64 toolchain
 │   ├── build-plugin.sh           — runs inside the container; native TTL + aarch64 .so
 │   └── README.md                 — Dwarf cross-build walkthrough
+├── patchstorage-build/           — Patchstorage cross-build + publish pipeline
+│   ├── build-target.sh           — runs inside Patchstorage's toolchain image
+│   ├── prepare.sh                — assembles the uploader working tree
+│   ├── uploader/                 — vendored Patchstorage uploader (see PROVENANCE)
+│   └── README.md                 — Patchstorage publishing walkthrough
+├── patchstorage.json             — per-plugin metadata (source_code_url, donate_url)
 ├── Makefile                      — top-level build + install + Dwarf + release
 ├── install.sh                    — MOD Desktop installer
 ├── README.md                     — this file
@@ -91,7 +114,7 @@ authenticated to the GitHub repo.
 
 ## Why local releases (not CI)?
 
-The `make release` target builds both bundles **on your machine** and
+The `make release` target builds all bundles **on your machine** and
 uploads them via `gh release create`. The Dwarf cross-toolchain takes
 ~30–60 min to assemble from scratch and is hard to cache reliably on a
 fresh GitHub Actions runner. Locally the image is already there and
