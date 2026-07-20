@@ -55,6 +55,11 @@ include ../../dpf/Makefile.plugins.mk
 # Add `vst2`, `vst3`, `clap`, etc. here if you want extra formats; each
 # adds DPF code with potentially different licensing — see
 # `dpf/LICENSING.md`.
-TARGETS += lv2
+# Formats DPF builds from this one source: lv2 is the MOD/Patchstorage format;
+# vst3 + clap are the desktop-DAW formats. Plain `make` builds all three. The
+# Patchstorage/Dwarf cross-builds pass PLUGIN_FORMATS=lv2 (see the top-level
+# `plugin` target) so they don't spend time on desktop formats they don't ship;
+# releases build vst3/clap portably via `make desktop-build`.
+TARGETS += lv2 vst3 clap
 
 all: $(TARGETS)
