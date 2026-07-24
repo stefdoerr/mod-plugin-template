@@ -25,6 +25,16 @@
     width: 320px;
     height: 160px;
     position: absolute;
+    /* Self-contained skin so the pedal renders without MOD's built-in panel
+       image — used by render_screenshot.py, and a clean base to restyle. */
+    background: linear-gradient(135deg, #4a3524 0%, #6a4a30 50%, #34241a 100%);
+    border-radius: 12px;
+    box-shadow:
+        inset 0 0 0 2px rgba(255, 220, 160, 0.15),
+        inset 0 0 24px rgba(0, 0, 0, 0.5),
+        0 4px 10px rgba(0, 0, 0, 0.5);
+    color: #f0e2c8;
+    font-family: "Lato", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 /* Drag handle covers the whole pedal so it can be dragged anywhere on
@@ -67,6 +77,14 @@
     text-align: center;
     pointer-events: none;
 }
+.myplugin-pedal .mod-plugin-brand h1 {
+    margin: 0; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+    color: rgba(240, 226, 200, 0.7); font-weight: 400;
+}
+.myplugin-pedal .mod-plugin-name h1 {
+    margin: 0; font-size: 18px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: #f0e2c8; font-weight: 700; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+}
 
 /* ============================ Controls ============================
    MOD-UI applies its built-in knob sprite from `modgui:knob` in
@@ -90,6 +108,12 @@
     gap: 4px;
 }
 .myplugin-pedal .myplugin-knob .mod-knob-image {
+    /* Use the bundled knob film-strip (knobs/black.png) rather than MOD's
+       built-in knob, so the pedal is fully self-contained and can be rendered
+       to a screenshot by render_screenshot.py. Swap the sprite to reskin. */
+    background-image: url(/resources/knobs/black.png{{{ns}}});
+    background-repeat: no-repeat;
+    background-position: left center;
     width: 56px;
     height: 56px;
     background-size: auto 56px;
@@ -97,6 +121,7 @@
 .myplugin-pedal .myplugin-knob .mod-knob-title {
     font-size: 10px;
     letter-spacing: 0.18em;
+    color: rgba(240, 226, 200, 0.85);
 }
 
 /* ============================ Bypass light + footswitch ============================
